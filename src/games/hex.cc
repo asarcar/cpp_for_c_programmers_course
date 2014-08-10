@@ -188,7 +188,7 @@ std::ostream& operator <<(std::ostream& os, const Hex &h) {
       // Display East edges (West Edges are displayed in the previous iteration)
       if (ew >= h._dim - 1)
         continue;
-      if (h._g.get_edge_value(vid, vid+1) < Graph::INFINITY_COST)
+      if (h._g.get_edge_value(vid, vid+1) < Graph::kInfinityCost)
         os << std::left << std::setfill(' ') << std::setw(2) << ew_edge;
     }
     // West Label
@@ -208,7 +208,7 @@ std::ostream& operator <<(std::ostream& os, const Hex &h) {
       if (ew == 0) {
         nvid1 = h.get_node_pos(ns, 0);
         svid1 = h.get_node_pos(ns + 1, 0);
-        if (h._g.get_edge_value(nvid1, svid1) < Graph::INFINITY_COST)
+        if (h._g.get_edge_value(nvid1, svid1) < Graph::kInfinityCost)
           os << std::left << std::setfill(' ') << std::setw(2) 
              << disp_ns_edge.at(i++%2);
         continue;
@@ -216,10 +216,10 @@ std::ostream& operator <<(std::ostream& os, const Hex &h) {
       nvid1 = h.get_node_pos(ns, ew);
       svid1 = h.get_node_pos(ns+1, ew-1);
       svid2 = h.get_node_pos(ns+1, ew);
-      if (h._g.get_edge_value(nvid1, svid1) < Graph::INFINITY_COST)
+      if (h._g.get_edge_value(nvid1, svid1) < Graph::kInfinityCost)
         os << std::left << std::setfill(' ') << std::setw(2) 
            << disp_ns_edge.at(i++%2);
-      if (h._g.get_edge_value(nvid1, svid2) < Graph::INFINITY_COST)
+      if (h._g.get_edge_value(nvid1, svid2) < Graph::kInfinityCost)
         os << std::left << std::setfill(' ') << std::setw(2) 
            << disp_ns_edge.at(i++%2);
     }

@@ -90,7 +90,7 @@ MSTPrim::MSTPrim(const Graph &g): _g(g), _mst(g) {
   MSTElem e;
   Graph::gvertexid_t vid{0};
   for (auto it = _mst.begin(); it != _mst.end(); ++it, ++vid) {    
-    e = std::make_pair(0, Graph::INFINITY_COST);
+    e = std::make_pair(0, Graph::kInfinityCost);
     *it = e;
     if (vid == 0)
       e.second = 0;
@@ -116,7 +116,7 @@ MSTPrim::MSTPrim(const Graph &g): _g(g), _mst(g) {
     DLOG(INFO) << "PriQ State: " << pq;
     // If the cost of the lowest cost edge is infinity then we do not
     // have a spanning tree solution for this tree: terminate the loop
-    if (e.second >= Graph::INFINITY_COST) {
+    if (e.second >= Graph::kInfinityCost) {
       DLOG(INFO) << "Graph does have a minimum spanning tree solution";
       break;
     }
@@ -146,7 +146,7 @@ MSTPrim::MSTPrim(const Graph &g): _g(g), _mst(g) {
       Graph::gvertexid_t nbr = (edge.first.first == v) ? 
                                edge.first.second : edge.first.first;
       e = _mst.at(nbr);
-      if (e.second < Graph::INFINITY_COST)
+      if (e.second < Graph::kInfinityCost)
         continue;
       
       // 3. Compute the cost of reaching nbr in the MST that now includes v
@@ -206,7 +206,7 @@ ostream& operator << (ostream& os, const MSTPrim &mst) {
   // tree by having it point to itself with cost 0 
   // similarly: vertex exists in the tree when its cost to the 
   // parent is not Infinity
-  Graph::gvertexid_t seed_vid{Graph::MAX_VERTEX_ID};
+  Graph::gvertexid_t seed_vid{Graph::kMaxVertexId};
   Graph::gcost_t mst_cost{0};
   Graph::gvertexid_t vid=0;
   for (auto it = mst.cbegin(); it != mst.cend(); ++it, ++vid) {
@@ -214,11 +214,11 @@ ostream& operator << (ostream& os, const MSTPrim &mst) {
       assert(it->second == 0);
       seed_vid = vid; // remember the seed vertex
     }
-    if (it->second >= Graph::INFINITY_COST)
+    if (it->second >= Graph::kInfinityCost)
       continue;
     mst_cost += it->second; // calculate the total cost of the MST
   }
-  assert(seed_vid != Graph::MAX_VERTEX_ID); // tree must have a seed vertex
+  assert(seed_vid != Graph::kMaxVertexId); // tree must have a seed vertex
 
   os << "#***************************#" << endl;
   os << "# MINIMUM SPANNING TREE:    #" << endl;
@@ -234,7 +234,7 @@ ostream& operator << (ostream& os, const MSTPrim &mst) {
   os << mst.get_num_vertices() << endl;
   vid=0;
   for (auto it = mst.cbegin(); it != mst.cend(); ++it, ++vid) {
-    if ((vid == it->first) || (it->second >= Graph::INFINITY_COST))
+    if ((vid == it->first) || (it->second >= Graph::kInfinityCost))
       continue;
     os << vid << " " << it->first << " " << it->second << endl;
   }

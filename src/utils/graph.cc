@@ -35,9 +35,9 @@ namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
 // Forward Declarations 
 // constexpr definitions
-constexpr Graph::gvertexid_t Graph::MAX_VERTEX_ID;
-constexpr Graph::gcost_t Graph::INFINITY_COST;
-constexpr Graph::gcost_t Graph::DEFAULT_COST;
+constexpr Graph::gvertexid_t Graph::kMaxVertexId;
+constexpr Graph::gcost_t Graph::kInfinityCost;
+constexpr Graph::gcost_t Graph::kMinCost;
 // End of Forward Declarations
 
 // Contructor
@@ -64,14 +64,14 @@ Graph::Graph(const EdgeType type,
   // generate the same seeds for random number generation to ensure 
   // that same graph (same edges & edge costs) is generated every time
   uint32_t cost_seed = (auto_test == true) ? 
-                       Graph::FIXED_COST_SEED_FOR_RANDOM_ENGINE:
+                       Graph::kFixedCostSeedForRandomEngine:
                        std::random_device{}();
   auto cost_fn = 
     std::bind(std::uniform_int_distribution<uint32_t>
               {min_distance_range, max_distance_range}, 
               std::default_random_engine{cost_seed}); // C++11 only    
   uint32_t create_edge_seed = (auto_test == true) ? 
-                              Graph::FIXED_EDGE_PRESENCE_SEED_FOR_RANDOM_ENGINE:
+                              Graph::kFixedEdgePresenceSeedForRandomEngine:
                               std::random_device{}();
   // scaled_fn = generate a random_number between 0 and 2**20 (~= 1 million)
   auto scaled_fn = 
@@ -130,7 +130,7 @@ Graph::Graph(string file_name):
     ss >> num_v;
     break;
   }
-  if ((num_v == 0) || (num_v > Graph::MAX_VERTEX_ID)) {
+  if ((num_v == 0) || (num_v > Graph::kMaxVertexId)) {
     ostringstream oss;
     oss << "File " << file_name << ": bad format: num_v = " << num_v;
     throw oss.str();
@@ -227,7 +227,7 @@ Graph::get_edge_value(gvertexid_t v1, gvertexid_t v2) const {
     eid = std::make_pair(v2, v1);
 
   if (isset_adjmap(eid) != true)
-    return Graph::INFINITY_COST;
+    return Graph::kInfinityCost;
   // edge must exist: use the at() operator
   return this->_edges.at(eid);
 }

@@ -73,7 +73,7 @@ class eGraph : public Graph {
           _vattr_is_equal(_vmap.at(vid), _vmap.at(vid2)))
         return vid2;
     }
-    return Graph::MAX_VERTEX_ID;
+    return Graph::kMaxVertexId;
   }
   // Save State & Restore State: used by MC simulation to run "what if scenarios" 
   // without messing up current state of eGraph

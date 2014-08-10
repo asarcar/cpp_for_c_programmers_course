@@ -79,7 +79,7 @@ Graph::econst_iterator Graph::ecbegin(Graph::gvertexid_t vid) const {
 }
 
 Graph::econst_iterator Graph::ecend(Graph::gvertexid_t vid) const { 
-  return Graph::econst_iterator(*this, vid, Graph::MAX_VERTEX_ID); 
+  return Graph::econst_iterator(*this, vid, Graph::kMaxVertexId); 
 }
 
 // helper function to allow chained cout cmds: example

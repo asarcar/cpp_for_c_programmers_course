@@ -184,7 +184,7 @@ void SPTGraphTester::ProcessGraph(const Graph& g,
 
   DLOG(INFO) << "Vertex v[" << _src_vertex_id 
              << "] to v[" << _dst_vertex_id << "]: ";
-  if (path_cost < Graph::INFINITY_COST) {
+  if (path_cost < Graph::kInfinityCost) {
     DLOG(INFO) << " Path Cost is " << path_cost;
   }
   else {
@@ -335,9 +335,9 @@ static bool ValidateNumVertices(const char* flagname, int32_t num_v) {
   std::string s(flagname);
   if ( (num_v <= 1) || 
        (static_cast<Graph::gvertexid_t>(num_v) >= 
-        Graph::MAX_VERTEX_ID) ) {
+        Graph::kMaxVertexId) ) {
     std::cerr << "Invalid value for --" << s << ": " << num_v 
-              << ": should be [2," << Graph::MAX_VERTEX_ID << ")" 
+              << ": should be [2," << Graph::kMaxVertexId << ")" 
               << std::endl;
     return false;
   }
@@ -370,9 +370,9 @@ static bool ValidateMinDistance(const char* flagname, int32_t min_d) {
   std::string s(flagname);
   if ( (min_d <= 0) || 
        (static_cast<Graph::gcost_t>(min_d) >= 
-        Graph::INFINITY_COST) ) {
+        Graph::kInfinityCost) ) {
     std::cerr << "Invalid value for --" << s << ": " << min_d 
-              << ": should be [1," << Graph::INFINITY_COST 
+              << ": should be [1," << Graph::kInfinityCost 
               << ")" << std::endl;
     return false;
   }
@@ -388,10 +388,10 @@ static bool ValidateMaxDistance(const char* flagname, int32_t max_d) {
   std::string s(flagname);
   if ( (max_d <= 0) || 
        (static_cast<Graph::gcost_t>(max_d) >= 
-        Graph::INFINITY_COST) ) {
+        Graph::kInfinityCost) ) {
     std::cerr << "Invalid value for --" << s << ": " << max_d 
               << ": should be [1," 
-              << Graph::MAX_VERTEX_ID << ")" << std::endl;
+              << Graph::kMaxVertexId << ")" << std::endl;
     return false;
   }
   return true;
@@ -406,10 +406,10 @@ static bool ValidateSrcVertexId(const char* flagname, int32_t src_v) {
   std::string s(flagname);
   if ( (src_v < 0) || 
        (static_cast<Graph::gvertexid_t>(src_v) >= 
-        Graph::MAX_VERTEX_ID) ) {
+        Graph::kMaxVertexId) ) {
     std::cerr << "Invalid value for --" << s << ": " << src_v 
               << ": should be [0," 
-              << Graph::MAX_VERTEX_ID 
+              << Graph::kMaxVertexId 
               << ")" << std::endl;
     return false;
   }
@@ -423,10 +423,10 @@ static bool ValidateDstVertexId(const char* flagname, int32_t dst_v) {
   std::string s(flagname);
   if ( (dst_v < 0) || 
        (static_cast<Graph::gvertexid_t>(dst_v) >= 
-        Graph::MAX_VERTEX_ID) ) {
+        Graph::kMaxVertexId) ) {
     std::cerr << "Invalid value for --" << s << ": " << dst_v 
               << ": should be [0," 
-              << Graph::MAX_VERTEX_ID 
+              << Graph::kMaxVertexId 
               << ")" << std::endl;
     return false;
   }

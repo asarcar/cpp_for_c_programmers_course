@@ -138,9 +138,9 @@ class Graph {
   using gedgeval_t   = gcost_t; // Edge Attributes
   
   // Keeping a check on max verticies to ensure all state of Graph fits in RAM
-  constexpr static gvertexid_t MAX_VERTEX_ID = (1 << 10); 
-  constexpr static gcost_t INFINITY_COST = std::numeric_limits<gcost_t>::max();
-  constexpr static gcost_t DEFAULT_COST = 1;
+  constexpr static Graph::gvertexid_t kMaxVertexId{(1 << 10)}; 
+  constexpr static Graph::gcost_t kInfinityCost{std::numeric_limits<int>::max()};
+  constexpr static Graph::gcost_t kMinCost{1};
 
   // Constructors
   // Init an undirected or directed graph (based on type) with num_vertices.
@@ -188,7 +188,7 @@ class Graph {
 
   // add (g, x, y): adds to G the edge from x to y, if it is not there.
   // Creates an edge (adjacency) in the graph with edge and (optional) value
-  void add_edge(gvertexid_t v1, gvertexid_t v2, gcost_t value =DEFAULT_COST);
+  void add_edge(gvertexid_t v1, gvertexid_t v2, gcost_t value =kMinCost);
 
   // delete (G, x, y): removes the edge from x to y, if it is there.
   // Removes an edge (adjacency) in the graph with edge and (optional) value
@@ -202,7 +202,7 @@ class Graph {
   // set_edge_value (G, x, y, v): sets the value to the edge (x,y) to v.
   // bad arg check: non existent edge automatically checked by container
   void set_edge_value(gvertexid_t v1, gvertexid_t v2, 
-                      gedgeval_t value=DEFAULT_COST);
+                      gedgeval_t value=kMinCost);
 
   // Dumps the graph to the file "file_name"
   void output_to_file(std::string file_name);
@@ -275,7 +275,7 @@ class Graph {
       if (isset_adjmap(std::make_pair(vid, vid2)) == true)
         return vid2;
     }
-    return MAX_VERTEX_ID;
+    return kMaxVertexId;
   }
   // Tests whether edge eid is present in the adjacency map
   inline bool isset_adjmap(const gedgeid_t &eid) const {
@@ -287,8 +287,8 @@ class Graph {
 
  private:
   //! Fixed seed generates predictable MC runs when running test SW or debugging
-  const static uint32_t FIXED_COST_SEED_FOR_RANDOM_ENGINE = 13607; 
-  const static uint32_t FIXED_EDGE_PRESENCE_SEED_FOR_RANDOM_ENGINE = 24718;
+  const static uint32_t kFixedCostSeedForRandomEngine = 13607; 
+  const static uint32_t kFixedEdgePresenceSeedForRandomEngine = 24718;
 
   // Graph type
   EdgeType _type;

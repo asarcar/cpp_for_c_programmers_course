@@ -98,7 +98,7 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
   SPTElem e;
   Graph::gvertexid_t vid = 0;
   for (auto it = _spt.begin(); it != _spt.end(); ++it, ++vid) {    
-    e = make_pair(root_vid, Graph::INFINITY_COST);
+    e = make_pair(root_vid, Graph::kInfinityCost);
     *it = e;
     if (vid == root_vid)
       e.second = 0;
@@ -130,7 +130,7 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
     // If the cost of the lowest cost edge is infinity then we do not
     // have a tree solution that covers all vertices (i.e. graph is 
     // partitioned when traversing from root_vid: terminate the loop
-    if (vcost >= Graph::INFINITY_COST) {
+    if (vcost >= Graph::kInfinityCost) {
       DLOG(INFO) << "Graph does NOT have a shortest path tree that "
                  << "covers all nodes of the tree";
       break;
@@ -161,7 +161,7 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
       Graph::gvertexid_t nbr = (edge.first.first == v) ? 
                                edge.first.second : edge.first.first;
       e = _spt.at(nbr);
-      if (e.second < Graph::INFINITY_COST)
+      if (e.second < Graph::kInfinityCost)
         continue;
       
       // 3. Compute the cost of reaching nbr in the SPT that now includes v
@@ -218,7 +218,7 @@ SPTDijkstra::get_path_size(Graph::gvertexid_t vid1,
 
   // Set path cost to "INFINITY" as the vid2 is not
   // reachable from vid1
-  return Graph::INFINITY_COST;
+  return Graph::kInfinityCost;
 }
 
 //   get_avg_path_size_for_vertex
@@ -236,7 +236,7 @@ double SPTDijkstra::get_avg_path_size_for_vertex(Graph::gvertexid_t vid) {
   for (auto it = this->cbegin(); it != this->cend(); ++it, ++num_vertices) {
     // skip over the source vertex itself as that is reachable at cost 0
     // skip over vertices that are not reachable at all
-    if ((it->first == vid) || (it->second == Graph::INFINITY_COST))
+    if ((it->first == vid) || (it->second == Graph::kInfinityCost))
       continue;
     path_cost += it->second;
   }
@@ -244,7 +244,7 @@ double SPTDijkstra::get_avg_path_size_for_vertex(Graph::gvertexid_t vid) {
   // For pathological case where there are no edges from the vertex
   // return MAX possible value
   if (num_vertices == 0)
-    return Graph::INFINITY_COST;
+    return Graph::kInfinityCost;
 
   return (static_cast<double>(path_cost)/num_vertices);
 }
@@ -266,7 +266,7 @@ double SPTDijkstra::get_avg_path_size(void) {
     for (auto it = this->cbegin(); it != this->cend(); ++it, ++num) {
       // skip over the source vertex itself as that is reachable at cost 0
       // skip over vertices that are not reachable at all
-      if ((it->first == vid) || (it->second == Graph::INFINITY_COST))
+      if ((it->first == vid) || (it->second == Graph::kInfinityCost))
         continue;
       path_cost += it->second;
     }
@@ -275,7 +275,7 @@ double SPTDijkstra::get_avg_path_size(void) {
   // For pathological case where there are no edges from the vertex
   // return MAX possible value
   if (num == 0)
-    return Graph::INFINITY_COST;
+    return Graph::kInfinityCost;
 
   return (path_cost/num);
 }
@@ -307,7 +307,7 @@ std::ostream& operator << (std::ostream& os, const SPTDijkstra &spt) {
   // tree by having it point to itself with cost 0 
   // similarly: vertex exists in the tree when its cost to the 
   // parent is not Infinity
-  Graph::gvertexid_t root_vid{Graph::MAX_VERTEX_ID};
+  Graph::gvertexid_t root_vid{Graph::kMaxVertexId};
   Graph::gcost_t tot_path{0};
   Graph::gvertexid_t vid=0;
   for (auto it = spt.cbegin(); it != spt.cend(); ++it, ++vid) {
@@ -315,11 +315,11 @@ std::ostream& operator << (std::ostream& os, const SPTDijkstra &spt) {
       assert(it->second == 0);
       root_vid = vid; // remember the root vertex
     }
-    if (it->second >= Graph::INFINITY_COST)
+    if (it->second >= Graph::kInfinityCost)
       continue;
     tot_path += it->second; // calculate the total cost of the MST
   }
-  assert(root_vid != Graph::MAX_VERTEX_ID); // tree must have a seed vertex
+  assert(root_vid != Graph::kMaxVertexId); // tree must have a seed vertex
 
   os << "#*******************************#" << std::endl;
   os << "# SHORTEST PATH TREE OUTPUT     #" << std::endl;
@@ -336,7 +336,7 @@ std::ostream& operator << (std::ostream& os, const SPTDijkstra &spt) {
   
   vid = 0;
   for (auto it = spt.cbegin(); it != spt.cend(); ++it, ++vid) {
-    if ((vid == it->first) || (it->second >= Graph::INFINITY_COST))
+    if ((vid == it->first) || (it->second >= Graph::kInfinityCost))
       continue;
     os << vid << " " << it->first << " " << it->second << std::endl;
   }

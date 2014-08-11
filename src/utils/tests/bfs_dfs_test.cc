@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
     std::ofstream op;
     op.open(FLAGS_output_file, std::ios::out);
     assert(!op == false);
-    Graph::SeedVertices seed_v;
-    Graph::gvertexid_t vid;
+    GVertexIterSeed seed_v;
+    GVertexId vid;
     std::istringstream iss(FLAGS_seed_v_str);
     while (iss.peek() != EOF) {
       iss >> vid;
@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     }
 
     // Iterate BFS on the graph: provide the output to output file
-    Graph g(FLAGS_input_file);    
+    Graph<uint32_t> g(FLAGS_input_file);    
     DLOG(INFO) << g << std::endl;
     op << g << std::endl;
 
@@ -74,9 +74,9 @@ int main(int argc, char **argv) {
     
     op << "--------BFS ORDER TRAVERSAL--------" << std::endl;
     uint32_t i=0;
-    for (auto it = g.vcbegin(Graph::VertexIterType::BFS_ORDER, 
+    for (auto it = g.vcbegin(GVertexIterType::BFS_ORDER, 
                              seed_v);
-         it != g.vcend(Graph::VertexIterType::BFS_ORDER); 
+         it != g.vcend(GVertexIterType::BFS_ORDER); 
          ++it, ++i) {
       DLOG(INFO) << " " << *it;
       op << " " << *it;
@@ -87,9 +87,9 @@ int main(int argc, char **argv) {
 
     op << "--------DFS ORDER TRAVERSAL--------" << std::endl;
     i=0;
-    for (auto it = g.vcbegin(Graph::VertexIterType::DFS_ORDER, 
+    for (auto it = g.vcbegin(GVertexIterType::DFS_ORDER, 
                              seed_v);
-         it != g.vcend(Graph::VertexIterType::DFS_ORDER); 
+         it != g.vcend(GVertexIterType::DFS_ORDER); 
          ++it, ++i) {
       DLOG(INFO) << " " << *it;
       op << " " << *it;

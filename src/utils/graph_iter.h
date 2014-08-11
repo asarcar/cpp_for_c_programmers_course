@@ -33,48 +33,15 @@ namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
 
 // ITERATOR Definitions
-// Edge Iterator
-class EdgeCIter {
- public:
-  explicit EdgeCIter(const Graph &g, 
-                     Graph::gvertexid_t vid=0, 
-                     Graph::gvertexid_t next_nbr_vid=0);
-  
-  bool operator ==(const EdgeCIter& o) const {
-    return ((this->_g == o._g) && 
-            (this->_vid == o._vid) &&
-            (this->_nbr_vid == o._nbr_vid));
-  }
-  
-  bool operator !=(const EdgeCIter& o) const { 
-    return !(*this == o); 
-  }
-  
-  // Implements the prefix increment case: ++iter; (not iter++)
-  Graph::econst_iterator& operator++(); 
-  // Returns the reference to value stored in container
-  Graph::econst_reference operator*(); 
- protected:
- private:
-  const Graph &_g;
-  // vertex_id over which the iterator is elaborating edges
-  const Graph::gvertexid_t _vid; 
-  // neighbor vertex_id that is the next edge candidate for _vid
-  Graph::gvertexid_t _nbr_vid; 
-};
-
-// helper function to allow chained cout cmds: example
-std::ostream& operator << (std::ostream& os, 
-                           const Graph::econst_reference edge);
-
 // Vertex Iterator
-class VertexCIter {
+template <typename GCost>
+class GVertexCIter {
  public:
-  explicit VertexCIter(Graph::VertexIterType itype,
-                       const Graph &g, 
-                       const Graph::SeedVertices& seed_v);
+  explicit GVertexCIter(GVertexIterType itype,
+                        const Graph<GCost> &g, 
+                        const GVertexIterSeed &seed_v);
   
-  inline bool operator ==(const VertexCIter& o) const {
+  inline bool operator ==(const GVertexCIter<GCost>& o) const {
     return ((this->_itype == o._itype) &&
             (this->_g == o._g) && 
             (this->_q.size() == o._q.size()) &&
@@ -82,35 +49,71 @@ class VertexCIter {
             (this->_end == o._end));
   }
   
-  inline bool operator !=(const VertexCIter& o) const { 
+  inline bool operator !=(const GVertexCIter<GCost>& o) const { 
     return !(*this == o); 
   }
 
   // Implements the prefix increment case: ++iter; (not iter++)
-  Graph::vconst_iterator& operator++(); 
+  GVertexCIter<GCost>& operator++(); 
   // Returns the reference to value stored in container
-  Graph::vconst_reference operator*(); 
+  GVertexIterConstReference operator*(); 
  protected:
  private:
-  Graph::VertexIterType _itype;
-  const Graph &         _g;
-  Graph::gvertexid_t    _next_vid;
+  GVertexIterType       _itype;
+  const Graph<GCost>&   _g;
+  GVertexId             _next_vid;
   bool                  _end;
   BitSet                _visited; 
-  std::queue<Graph::gvertexid_t> _q; // container for BFS
-  std::stack<Graph::gvertexid_t> _s; // container used for DFS
+  std::queue<GVertexId> _q; // container for BFS
+  std::stack<GVertexId> _s; // container used for DFS
   // tracks all the vertices that have already been visited via bitmap
 
   // Private Methods
   // Based on itype (BFS/DFS) push the queue or stack
-  void push(const Graph::gvertexid_t& vid);
+  void push(const GVertexId& vid);
   // Based on itype (BFS/DFS) push the queue or stack
   void pop(void);
   // Based on itype (BFS/DFS) front the queue or top the stack
-  Graph::gvertexid_t& top(void);
+  GVertexId& top(void);
   // Based on itype (BFS/DFS) return the size of queue or stack
   std::size_t size(void);
 };
+
+// Edge Iterator
+template <typename GCost>
+class GEdgeCIter {
+ public:
+  explicit GEdgeCIter(const Graph<GCost> &g, 
+                      GVertexId vid=0, 
+                      GVertexId next_nbr_vid=0);
+  
+  bool operator ==(const GEdgeCIter<GCost>& o) const {
+    return ((this->_g == o._g) && 
+            (this->_vid == o._vid) &&
+            (this->_nbr_vid == o._nbr_vid));
+  }
+  
+  bool operator !=(const GEdgeCIter<GCost>& o) const { 
+    return !(*this == o); 
+  }
+  
+  // Implements the prefix increment case: ++iter; (not iter++)
+  GEdgeCIter<GCost>& operator++(); 
+  // Returns the reference to value stored in container
+  GEdgeIterConstReference<GCost> operator*(); 
+
+ protected:
+ private:
+  const Graph<GCost> &_g;
+  // vertex_id over which the iterator is elaborating edges
+  const GVertexId _vid; 
+  // neighbor vertex_id that is the next edge candidate for _vid
+  GVertexId _nbr_vid; 
+};
+
+// Suppress implicit instantiation of Graph Iterators
+extern template class GVertexCIter<uint32_t>;
+extern template class GEdgeCIter<uint32_t>;
 
 //-----------------------------------------------------------------------------
 } } // namespace hexgame { namespace utils {

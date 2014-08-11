@@ -26,15 +26,17 @@
 // Local Headers
 #include "utils/tree.h"
 
+using namespace std;
 
 namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
-void Tree::output_to_file(std::string file_name) {
-  std::ofstream ofp;
+template <typename GCost>
+void Tree<GCost>::output_to_file(string file_name) {
+  ofstream ofp;
 
-  ofp.open(file_name, std::ios::out);
+  ofp.open(file_name, ios::out);
   if (!ofp) {
-    std::stringstream ss;
+    stringstream ss;
     ss << "Can't open output file " << file_name;
     throw ss.str();
   }
@@ -49,15 +51,16 @@ void Tree::output_to_file(std::string file_name) {
 
 // helper function to allow chained output cmds: example
 // cout << "The tree: " << endl << t << endl << "---------" << endl;
-std::ostream& operator <<(std::ostream& os, const Tree& t) {
-  os << "#*****************************#" << std::endl;
-  os << "# TREE OUTPUT                 #" << std::endl;
-  os << "#-----------------------------#" << std::endl;
-  os << "# FORMAT:                     #" << std::endl;
-  os << "#= num_vertices               #" << std::endl;
-  os << "#@@@ vid parent_vid info      #" << std::endl;
-  os << "###############################" << std::endl;
-  os << t._g.get_num_vertices() << std::endl;
+template <typename GCost>
+ostream& operator <<(ostream& os, const Tree<GCost>& t) {
+  os << "#*****************************#" << endl;
+  os << "# TREE OUTPUT                 #" << endl;
+  os << "#-----------------------------#" << endl;
+  os << "# FORMAT:                     #" << endl;
+  os << "#= num_vertices               #" << endl;
+  os << "#@@@ vid parent_vid info      #" << endl;
+  os << "###############################" << endl;
+  os << t._g.get_num_vertices() << endl;
   
   uint32_t i=0;
   for (auto it = t.cbegin(); it != t.cend(); ++it) {
@@ -68,15 +71,19 @@ std::ostream& operator <<(std::ostream& os, const Tree& t) {
       i++;
       continue;
     }
-    os << i << " " << it->first << " " << it->second << std::endl;
+    os << i << " " << it->first << " " << it->second << endl;
     i++;
   }
-  os << "###############################" << std::endl;
+  os << "###############################" << endl;
   
-  os << "#*****************************#" << std::endl;
+  os << "#*****************************#" << endl;
 
   return os;
 }
+
+// Trigger instantiation
+template class Tree<uint32_t>;
+template ostream& operator << <uint32_t>(ostream& os, const Tree<uint32_t> &t);
 
 //-----------------------------------------------------------------------------
 } } // namespace hexgame { namespace utils {

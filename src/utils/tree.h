@@ -42,14 +42,24 @@
 
 namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
+// Forward Declarations
+template <typename GCost>
+class Tree;
+
+// Adding a typedef/using to refer to each entry in the tree container
+template <typename GCost>
+using TreeElem = typename std::pair<GVertexId, GCost>;
+
+template <typename GCost>
+std::ostream& operator <<(std::ostream&, const Tree<GCost>&);
+// End of Forward Declarations
+
+template <typename GCost>
 class Tree {
  public:
-  // Adding a typedef/using to refer to each entry in the tree container
-  using TreeElem = std::pair<Graph::gvertexid_t, Graph::gcost_t>;
-
   // Contructors
   //     Creates a Tree class referenced on Graph g
-  Tree(const Graph &g): 
+  Tree(const Graph<GCost> &g): 
       _g(g), _v{g.get_num_vertices()} {}
 
   // Destructor
@@ -67,36 +77,41 @@ class Tree {
   // Template Friend Function: the "<>" after function 
   // specifies that this is a template function accepting 
   // template arguments
-  friend std::ostream& operator <<(std::ostream& os, const Tree &t);
+  friend std::ostream& operator << <>(std::ostream& os, const Tree<GCost> &t);
 
   // ITERATORS
   //   We simply use delegation to Vector class
-  using const_iterator = typename std::vector<TreeElem>::const_iterator;
-  inline const_iterator cbegin() const { return _v.cbegin(); }
-  inline const_iterator cend() const { return _v.cend(); }
+  using TConstIterator = typename std::vector<TreeElem<GCost>>::const_iterator;
+  inline TConstIterator cbegin() const { return _v.cbegin(); }
+  inline TConstIterator cend() const { return _v.cend(); }
 
-  using iterator = typename std::vector<TreeElem>::iterator;
-  inline iterator begin() { return _v.begin(); }
-  inline iterator end() { return _v.end(); }
+  using TIterator = typename std::vector<TreeElem<GCost>>::iterator;
+  inline TIterator begin() { return _v.begin(); }
+  inline TIterator end() { return _v.end(); }
 
-  using size_type = typename std::vector<TreeElem>::size_type;
+  using size_type = typename std::vector<TreeElem<GCost>>::size_type;
 
-  using const_reference = typename std::vector<TreeElem>::const_reference;
-  inline const_reference at(size_type n) const { return _v.at(n); }
+  using TConstReference = typename std::vector<TreeElem<GCost>>::const_reference;
+  inline TConstReference at(size_type n) const { return _v.at(n); }
 
-  using reference = typename std::vector<TreeElem>::reference;
-  inline reference at(size_type n) { return _v.at(n); }
+  using TReference = typename std::vector<TreeElem<GCost>>::reference;
+  inline TReference at(size_type n) { return _v.at(n); }
 
  protected:
  private:
-  const Graph& _g;
+  const Graph<GCost>& _g;
   // The tree is stores as a simple vector of vertices 
   // The associated information wrt each vid stored in the vector
   // 1. parent_vid i.e.parent vertex of the vid
   // 2. Edge Cost (parent_vid, vid): available from graph
   // 3. Path Cost (svid-->vid) total path cost: calculated from graph
-  std::vector<TreeElem> _v;
+  std::vector<TreeElem<GCost>> _v;
 };
+
+// Suppress implicit instantiation
+extern template std::ostream& 
+operator << <uint32_t>(std::ostream& os, const Tree<uint32_t> &t);
+extern template class Tree<uint32_t>;
 
 //-----------------------------------------------------------------------------
 } } // namespace hexgame { namespace utils {

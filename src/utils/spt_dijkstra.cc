@@ -42,32 +42,36 @@ namespace hexgame { namespace utils {
 
 // PQElem are units store in prioirty Q while running the MST Prim 
 // algorithm: 
-using PQElem = std::pair<Graph::gvertexid_t, SPTDijkstra::SPTElem>;
+template <typename GCost>
+using PQElem = std::pair<GVertexId, TreeElem<GCost>>;
 
 // helper function to allow chained cout cmds: example
-static inline std::ostream& operator << (std::ostream& os, const PQElem& elem) {
+template <typename GCost>
+static inline ostream& 
+operator << (std::ostream& os, const PQElem<GCost>& elem) {
   os << "{(" << elem.first << "->" << elem.second.first << ")" 
      << elem.second.second << "}";
   return os;
 }
 
-
 // Common Useful Function Objects
+template <typename GCost>
 class MinCostVertex {
  public:
   // Vertex v1 has "lower" prio than v2 if v1 has "higher" cost than v2
-  bool operator() (const PQElem& e1, const PQElem& e2) const {
+  bool operator() (const PQElem<GCost>& e1, const PQElem<GCost>& e2) const {
     return (e1.second.second > e2.second.second);
   }
  protected:
  private:
 };
 
+template <typename GCost>
 class EqRefVertexId {
  public:
   // Vertex v1 is "equal" from a "find" perspective if the reference (first)
   // vertex ids are the same
-  bool operator() (const PQElem& e1, const PQElem& e2) const {
+  bool operator() (const PQElem<GCost>& e1, const PQElem<GCost>& e2) const {
     return (e1.first == e2.first);
   }
  protected:
@@ -76,7 +80,8 @@ class EqRefVertexId {
 
 //   run_spt_dijkstra with srv_vid as root of the tree
 //     arg1: root vertex id
-void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
+template <typename GCost>
+void SPTDijkstra<GCost>::run_spt_dijkstra(GVertexId root_vid) {
   if (root_vid >= _g.get_num_vertices()) {
     DLOG(ERROR) << "Graph has " << _g.get_num_vertices() 
                 << " vertices: spt_dijkstra called with vertex_id " 
@@ -86,7 +91,7 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
   
   // priority Q: keeps all vertices that are candidates but not yet 
   // a part of the Minimum Spanning Tree
-  PrioQ <PQElem, MinCostVertex, EqRefVertexId> pq;
+  PrioQ <PQElem<GCost>, MinCostVertex<GCost>, EqRefVertexId<GCost>> pq;
 
   // 1. Initiatlize Data Structures:
   // 1.a. spt = {} i.e. parents of all vertices is vertex 0 with INFINITE cost
@@ -94,11 +99,11 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
   // Start with adding all the vertices to pq with infinite cost except
   // the "root" graph: we will add vertex root_id with cost 0.
   // Add the rest of the vertices with cost "infinity"
-  PQElem elem; 
-  SPTElem e;
-  Graph::gvertexid_t vid = 0;
+  PQElem<GCost> elem; 
+  TreeElem<GCost> e;
+  GVertexId vid = 0;
   for (auto it = _spt.begin(); it != _spt.end(); ++it, ++vid) {    
-    e = make_pair(root_vid, Graph::kInfinityCost);
+    e = make_pair(root_vid, kGInfinityCost<GCost>());
     *it = e;
     if (vid == root_vid)
       e.second = 0;
@@ -117,11 +122,11 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
 
   while (pq.get_size() > 0) {
     // 2.a. spt <- pick the vertex with the minimal edge cost from pq.
-    PQElem elem(pq.get_top());
-    SPTElem e = elem.second;
+    PQElem<GCost> elem(pq.get_top());
+    TreeElem<GCost> e = elem.second;
     
-    Graph::gvertexid_t v=elem.first; // current vertex examined
-    Graph::gcost_t vcost=e.second;   // path cost of reaching v
+    GVertexId v=elem.first; // current vertex examined
+    GCost vcost=e.second;   // path cost of reaching v
 
     DLOG(INFO) << "PriQ: size " << pq.get_size() << "-> top elem = [" << v << "]:<" 
                << e.first << "," << e.second << ">";
@@ -130,7 +135,7 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
     // If the cost of the lowest cost edge is infinity then we do not
     // have a tree solution that covers all vertices (i.e. graph is 
     // partitioned when traversing from root_vid: terminate the loop
-    if (vcost >= Graph::kInfinityCost) {
+    if (vcost >= kGInfinityCost<GCost>()) {
       DLOG(INFO) << "Graph does NOT have a shortest path tree that "
                  << "covers all nodes of the tree";
       break;
@@ -146,9 +151,10 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
     // 2.b.i. Traverse all the vertices nbr reachable from v. 
     //        Iterate through all edges of vertex v to all other vertices ov
     for (auto it =_g.ecbegin(v); it != _g.ecend(v); ++it) {
-      Graph::evalue_type edge = *it;
+      GEdgeIterConstReference<GCost> edge{*it};
       DLOG(INFO) << "Reference Vertex " << v << ": Examining Edge " 
-                 << edge << " num_iter " << num_iter << std::endl;
+                 << edge.first.first << " " << edge.first.second << " " 
+                 << edge.second << " num_iter " << num_iter << endl;
       
       // sanity check: iteration should terminate in at most 2*E
       assert((num_iter++) < (num_edges << 1));
@@ -158,20 +164,20 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
       //         v with associated cost. 
       //         If nbr is already one among 
       //         the shortest path tree vertices we can ignore this vertex
-      Graph::gvertexid_t nbr = (edge.first.first == v) ? 
-                               edge.first.second : edge.first.first;
+      GVertexId nbr = (edge.first.first == v) ? 
+                      edge.first.second : edge.first.first;
       e = _spt.at(nbr);
-      if (e.second < Graph::kInfinityCost)
+      if (e.second < kGInfinityCost<GCost>())
         continue;
       
       // 3. Compute the cost of reaching nbr in the SPT that now includes v
       // 3.a. If this vertex nbr is reachable for the first time (was not even
       //      visible in pri Q, then add this vertex to the pri Q with the 
       //      reachability cost.
-      Graph::gcost_t ncost = edge.second + vcost;
+      GCost ncost = edge.second + vcost;
       bool match;
-      PQElem nbr_elem(std::make_pair(nbr, std::make_pair(v, ncost)));
-      PQElem& pq_elem = pq.contains_elem(nbr_elem, match);
+      PQElem<GCost> nbr_elem(std::make_pair(nbr, std::make_pair(v, ncost)));
+      PQElem<GCost>& pq_elem = pq.contains_elem(nbr_elem, match);
       if (match == false) {
         pq.insert_elem(nbr_elem);
         continue;
@@ -198,9 +204,9 @@ void SPTDijkstra::run_spt_dijkstra(Graph::gvertexid_t root_vid) {
 //     arg1: source vertex id
 //     arg2: destination vertex id
 //     Return: path_cost from source to destination vertex id
-Graph::gcost_t 
-SPTDijkstra::get_path_size(Graph::gvertexid_t vid1, 
-                           Graph::gvertexid_t vid2) {
+template <typename GCost> 
+GCost SPTDijkstra<GCost>::get_path_size(GVertexId vid1, 
+                                        GVertexId vid2) {
   // We first retrieve the shortest path from vid1 to all vertices
   // Then we just walk the vector until we hit vertex vid2
 
@@ -218,25 +224,26 @@ SPTDijkstra::get_path_size(Graph::gvertexid_t vid1,
 
   // Set path cost to "INFINITY" as the vid2 is not
   // reachable from vid1
-  return Graph::kInfinityCost;
+  return kGInfinityCost<GCost>();
 }
 
 //   get_avg_path_size_for_vertex
 //     arg1: source vertex id
 //     return: avg path size from given vertex id to all other reachable 
 //             vertices
-double SPTDijkstra::get_avg_path_size_for_vertex(Graph::gvertexid_t vid) {
+template <typename GCost>
+double SPTDijkstra<GCost>::get_avg_path_size_for_vertex(GVertexId vid) {
   // We first retrieve the shortest path from vid to all vertices
   // Then we just walk the vector summing up all cost and divide
   // by the number of entries in the vector 
   this->run_spt_dijkstra(vid);
 
-  Graph::gcost_t path_cost = 0;
-  Graph::gvertexid_t num_vertices = 0;
+  GCost path_cost{0};
+  uint32_t num_vertices = 0;
   for (auto it = this->cbegin(); it != this->cend(); ++it, ++num_vertices) {
     // skip over the source vertex itself as that is reachable at cost 0
     // skip over vertices that are not reachable at all
-    if ((it->first == vid) || (it->second == Graph::kInfinityCost))
+    if ((it->first == vid) || (it->second == kGInfinityCost<GCost>()))
       continue;
     path_cost += it->second;
   }
@@ -244,7 +251,7 @@ double SPTDijkstra::get_avg_path_size_for_vertex(Graph::gvertexid_t vid) {
   // For pathological case where there are no edges from the vertex
   // return MAX possible value
   if (num_vertices == 0)
-    return Graph::kInfinityCost;
+    return kGInfinityCost<GCost>();
 
   return (static_cast<double>(path_cost)/num_vertices);
 }
@@ -252,21 +259,22 @@ double SPTDijkstra::get_avg_path_size_for_vertex(Graph::gvertexid_t vid) {
 //   get_avg_path_size
 //     return: avg path size from all vertices to all other reachable 
 //             vertices
-double SPTDijkstra::get_avg_path_size(void) {
+template <typename GCost>
+double SPTDijkstra<GCost>::get_avg_path_size(void) {
   // Retrieve all vertices in the graph
   // Keep a running total of path_size from each source vertex to 
   // all destination vertices.
   // Compute the average over all the data
 
   uint32_t num = 0;
-  Graph::gcost_t path_cost = 0;
+  GCost path_cost = 0;
 
-  for (Graph::gvertexid_t vid=0; vid < _g.get_num_vertices(); ++vid) {
+  for (GVertexId vid=0; vid < _g.get_num_vertices(); ++vid) {
     this->run_spt_dijkstra(vid);
     for (auto it = this->cbegin(); it != this->cend(); ++it, ++num) {
       // skip over the source vertex itself as that is reachable at cost 0
       // skip over vertices that are not reachable at all
-      if ((it->first == vid) || (it->second == Graph::kInfinityCost))
+      if ((it->first == vid) || (it->second == kGInfinityCost<GCost>()))
         continue;
       path_cost += it->second;
     }
@@ -275,13 +283,14 @@ double SPTDijkstra::get_avg_path_size(void) {
   // For pathological case where there are no edges from the vertex
   // return MAX possible value
   if (num == 0)
-    return Graph::kInfinityCost;
+    return kGInfinityCost<GCost>();
 
   return (path_cost/num);
 }
 
 // Dumps the state of the SPT in file_name
-void SPTDijkstra::output_to_file(std::string file_name) {
+template <typename GCost>
+void SPTDijkstra<GCost>::output_to_file(std::string file_name) {
   std::ofstream ofp;
 
   ofp.open(file_name, std::ios::out);
@@ -300,26 +309,28 @@ void SPTDijkstra::output_to_file(std::string file_name) {
 
 // helper function to allow chained output cmds: example
 // cout << "The SPT: " << endl << spt << endl << "---------" << endl;
-std::ostream& operator << (std::ostream& os, const SPTDijkstra &spt) {
+template <typename GCost>
+std::ostream& 
+operator << (std::ostream& os, const SPTDijkstra<GCost> &spt) {
   // Identify root vertex of the tree
   // as the graph does not allow self referential nodes
   // i.e. an edge from a node N to itself, we designate a root of the SPT
   // tree by having it point to itself with cost 0 
   // similarly: vertex exists in the tree when its cost to the 
   // parent is not Infinity
-  Graph::gvertexid_t root_vid{Graph::kMaxVertexId};
-  Graph::gcost_t tot_path{0};
-  Graph::gvertexid_t vid=0;
+  GVertexId root_vid{kGMaxVertexId<GCost>()};
+  GCost tot_path{0};
+  GVertexId vid=0;
   for (auto it = spt.cbegin(); it != spt.cend(); ++it, ++vid) {
     if (vid == it->first) {
       assert(it->second == 0);
       root_vid = vid; // remember the root vertex
     }
-    if (it->second >= Graph::kInfinityCost)
+    if (it->second >= kGInfinityCost<GCost>())
       continue;
     tot_path += it->second; // calculate the total cost of the MST
   }
-  assert(root_vid != Graph::kMaxVertexId); // tree must have a seed vertex
+  assert(root_vid != kGMaxVertexId<GCost>()); // tree must have a seed vertex
 
   os << "#*******************************#" << std::endl;
   os << "# SHORTEST PATH TREE OUTPUT     #" << std::endl;
@@ -336,7 +347,7 @@ std::ostream& operator << (std::ostream& os, const SPTDijkstra &spt) {
   
   vid = 0;
   for (auto it = spt.cbegin(); it != spt.cend(); ++it, ++vid) {
-    if ((vid == it->first) || (it->second >= Graph::kInfinityCost))
+    if ((vid == it->first) || (it->second >= kGInfinityCost<GCost>()))
       continue;
     os << vid << " " << it->first << " " << it->second << std::endl;
   }
@@ -346,6 +357,10 @@ std::ostream& operator << (std::ostream& os, const SPTDijkstra &spt) {
 
   return os;
 }
+
+// Trigger instantiation
+template class SPTDijkstra<uint32_t>;
+template ostream& operator << <uint32_t>(ostream& os, const SPTDijkstra<uint32_t> &spt);
 
 //-----------------------------------------------------------------------------
 } } // namespace hexgame { namespace utils {

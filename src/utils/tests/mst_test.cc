@@ -45,11 +45,11 @@ int main(int argc, char **argv) {
     DLOG(INFO) << "Test Program Begins: ..." << std::endl 
                << "------------------------" << std::endl;
 
-    Graph g(FLAGS_input_file);    
+    Graph<uint32_t> g(FLAGS_input_file);    
     DLOG(INFO) << g << std::endl;
 
     // Run MST on the graph: display the output
-    MSTPrim mst(g);
+    MSTPrim<uint32_t> mst(g);
     mst.output_to_file(FLAGS_output_file);
     DLOG(INFO) << mst << std::endl;
 

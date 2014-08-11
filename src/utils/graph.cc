@@ -33,45 +33,39 @@ using namespace std;
 
 namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
-// Forward Declarations 
-// constexpr definitions
-constexpr Graph::gvertexid_t Graph::kMaxVertexId;
-constexpr Graph::gcost_t Graph::kInfinityCost;
-constexpr Graph::gcost_t Graph::kMinCost;
-// End of Forward Declarations
-
 // Contructor
 // Init an undirected or directed graph (based on type) with num_vertices.
 // The edges created with probability of edge_density.
 // The edge cost is chosen with equal prob in range mix to max range
-Graph::Graph(const EdgeType type,
-             const uint32_t num_vertices,
-             const double   edge_density, 
-             const gcost_t  min_distance_range, 
-             const gcost_t  max_distance_range,
-             // true when called from automated test scripts
-             const bool     auto_test) : 
+template <typename GCost>
+Graph<GCost>::Graph(const GEdgeType type,
+                    const uint32_t num_vertices,
+                    const double   edge_density, 
+                    const GCost  min_distance_range, 
+                    const GCost  max_distance_range,
+                    // true when called from automated test scripts
+                    const bool     auto_test) : 
     _type(type), _num_vertices{num_vertices}, _adjmap(num_vertices) {
   // 1. Loop through each source vertex: 
   // 2. Loop through each "new" edge candidate
   // 2.a. Discard candidate edge if prob is out of range.
   // 2.b. Otherwise: Set edge cost based on random number & add edge 
 
-  gvertexid_t vid1, vid2;
-  gvertexid_t min2 = 0;
+  GVertexId vid1, vid2;
+  GVertexId min2 = 0;
 
   // For repeatable & predictable data generation (auto_test == TRUE) we 
   // generate the same seeds for random number generation to ensure 
   // that same graph (same edges & edge costs) is generated every time
   uint32_t cost_seed = (auto_test == true) ? 
-                       Graph::kFixedCostSeedForRandomEngine:
+                       Graph<GCost>::kFixedCostSeedForRandomEngine:
                        std::random_device{}();
   auto cost_fn = 
     std::bind(std::uniform_int_distribution<uint32_t>
               {min_distance_range, max_distance_range}, 
               std::default_random_engine{cost_seed}); // C++11 only    
   uint32_t create_edge_seed = (auto_test == true) ? 
-                              Graph::kFixedEdgePresenceSeedForRandomEngine:
+                              Graph<GCost>::kFixedEdgePresenceSeedForRandomEngine:
                               std::random_device{}();
   // scaled_fn = generate a random_number between 0 and 2**20 (~= 1 million)
   auto scaled_fn = 
@@ -83,7 +77,7 @@ Graph::Graph(const EdgeType type,
   // 1. Loop through each source vertex: 
   for (vid1 = 0; vid1 < this->get_num_vertices(); vid1++) {
     //    Undirected graph: edge candidate - (vi, vj) i <= j
-    min2 = (this->_type == EdgeType::UNDIRECTED) ? vid1: 0;
+    min2 = (this->_type == GEdgeType::UNDIRECTED) ? vid1: 0;
 
     // 2. Loop through each "new" edge candidate
     for (vid2 = min2; vid2 < this->get_num_vertices(); vid2++) {
@@ -107,8 +101,9 @@ Graph::Graph(const EdgeType type,
 // Init an undirected graph (note that sample file data provided in HW does not 
 // specify directed or undirected: hence we will always assume undirected graph)
 // based on content of the file
-Graph::Graph(string file_name): 
-    _type(EdgeType::UNDIRECTED) {
+template <typename GCost>
+Graph<GCost>::Graph(string file_name): 
+    _type(GEdgeType::UNDIRECTED) {
   ifstream inp;
   string line;
 
@@ -120,7 +115,7 @@ Graph::Graph(string file_name):
   }
 
   // Read # of Vertices & init internal structures
-  gvertexid_t num_v{0}; // C++11 style initializer
+  GVertexId num_v{0}; // C++11 style initializer
   
   while (getline(inp, line)) {
     // Skip over commented lines of the file
@@ -130,7 +125,7 @@ Graph::Graph(string file_name):
     ss >> num_v;
     break;
   }
-  if ((num_v == 0) || (num_v > Graph::kMaxVertexId)) {
+  if ((num_v == 0) || (num_v > kGMaxVertexId<GCost>())) {
     ostringstream oss;
     oss << "File " << file_name << ": bad format: num_v = " << num_v;
     throw oss.str();
@@ -140,8 +135,8 @@ Graph::Graph(string file_name):
   _adjmap.resize(num_v);
 
   // Read the edges and set cost
-  gvertexid_t vid1{0}, vid2{0}; 
-  gedgeval_t  cost{0};
+  GVertexId vid1{0}, vid2{0}; 
+  GCost cost{0};
 
   while (getline(inp, line)) {
     // Skip over commented lines of the file
@@ -167,11 +162,12 @@ Graph::Graph(string file_name):
 
 // add (g, x, y): adds to G the edge from x to y, if it is not there.
 // Creates an edge (adjacency) in the graph with edge and (optional) value
-void Graph::add_edge(gvertexid_t v1, gvertexid_t v2, gcost_t value) {
+template <typename GCost>
+void Graph<GCost>::add_edge(GVertexId v1, GVertexId v2, GCost value) {
   // Establish adjacency & add the edge to graph
-  gedgeid_t eid = make_pair(v1, v2);
+  GEdgeId eid = make_pair(v1, v2);
   // For undirected graph: we always index the edge as (vi, vj) i<=j
-  if ((this->_type == EdgeType::UNDIRECTED) && (v1 > v2)) 
+  if ((this->_type == GEdgeType::UNDIRECTED) && (v1 > v2)) 
     eid = make_pair(v2, v1);
   
   DLOG(INFO) << "Creating edge <" << eid.first << "," << eid.second 
@@ -186,11 +182,12 @@ void Graph::add_edge(gvertexid_t v1, gvertexid_t v2, gcost_t value) {
 
 // delete (G, x, y): removes the edge from x to y, if it is there.
 // Removes an edge (adjacency) in the graph with edge and (optional) value
-void Graph::del_edge(gvertexid_t v1, gvertexid_t v2) {
+template <typename GCost>
+void Graph<GCost>::del_edge(GVertexId v1, GVertexId v2) {
   // Clear adjacency & remove the edge to graph
-  gedgeid_t eid = make_pair(v1, v2);
+  GEdgeId eid = make_pair(v1, v2);
   // For undirected graph: we always index the edge as (vi, vj) i<=j
-  if ((this->_type == EdgeType::UNDIRECTED) && (v1 > v2)) 
+  if ((this->_type == GEdgeType::UNDIRECTED) && (v1 > v2)) 
     eid = make_pair(v2, v1);
 
   clr_adjmap(eid); // adjacency cleared
@@ -201,11 +198,12 @@ void Graph::del_edge(gvertexid_t v1, gvertexid_t v2) {
 
 // set_edge_value (G, x, y, v): sets the value associated to the edge (x,y) to v.
 // bad arg check: non existent edge automatically checked by container
-void Graph::set_edge_value(gvertexid_t v1, gvertexid_t v2, gedgeval_t value) {
+template <typename GCost>
+void Graph<GCost>::set_edge_value(GVertexId v1, GVertexId v2, GCost value) {
   // Validate edge exists: update edge cost
-  gedgeid_t eid = make_pair(v1, v2);
+  GEdgeId eid = make_pair(v1, v2);
   // For undirected graph: we always index the edge as (vi, vj) i<=j
-  if ((this->_type == EdgeType::UNDIRECTED) && (v1 > v2)) 
+  if ((this->_type == GEdgeType::UNDIRECTED) && (v1 > v2)) 
     eid = make_pair(v2, v1);
 
   if (isset_adjmap(eid) != true)
@@ -219,21 +217,22 @@ void Graph::set_edge_value(gvertexid_t v1, gvertexid_t v2, gedgeval_t value) {
 // get_edge_value( G, x, y): returns the value associated to the edge (x,y).
 // non existent edge: return infinity cost
 // bad arg check: non existent edge automatically checked by container
-Graph::gedgeval_t 
-Graph::get_edge_value(gvertexid_t v1, gvertexid_t v2) const {
-  gedgeid_t eid = std::make_pair(v1, v2);
+template <typename GCost>
+GCost Graph<GCost>::get_edge_value(GVertexId v1, GVertexId v2) const {
+  GEdgeId eid = std::make_pair(v1, v2);
   // Undirected Graph: Edges stored as (vi, vj) i <= j
-  if ((this->_type == EdgeType::UNDIRECTED) && (v1 > v2))
+  if ((this->_type == GEdgeType::UNDIRECTED) && (v1 > v2))
     eid = std::make_pair(v2, v1);
 
   if (isset_adjmap(eid) != true)
-    return Graph::kInfinityCost;
+    return kGInfinityCost<GCost>();
   // edge must exist: use the at() operator
   return this->_edges.at(eid);
 }
 
 // Dumps the graph to the file "file_name"
-void Graph::output_to_file(std::string file_name) {
+template <typename GCost>
+void Graph<GCost>::output_to_file(std::string file_name) {
   ofstream ofp;
 
   ofp.open(file_name, ios::out);
@@ -253,7 +252,8 @@ void Graph::output_to_file(std::string file_name) {
 // Graph Output
 // helper function to allow chained cout cmds: example
 // cout << "The graph: " << endl << g << endl << "---------" << endl;
-ostream& operator <<(ostream& os, const Graph &g) {
+template <typename GCost>
+ostream& operator << (ostream& os, const Graph<GCost> &g) {
   os << "#************************#" << endl;
   os << "# GRAPH:                 #" << endl;
   os << "#------------------------#" << endl;
@@ -261,7 +261,7 @@ ostream& operator <<(ostream& os, const Graph &g) {
   os << "# num_vertices           #" << endl;
   os << "# svid dvid edge_cost    #" << endl; 
   os << "#^^^^^^^^^^^^^^^^^^^^^^^^#" << endl;
-  os << "# EdgeType: " << ((g._type == Graph::EdgeType::UNDIRECTED) ? "U" : "D")
+  os << "# GEdgeType: " << ((g._type == GEdgeType::UNDIRECTED) ? "U" : "D")
      << "#" << endl;
   os << "# #V: " << g.get_num_vertices() 
      << ";" << " #E(uniq): " << g.get_num_edges() << "#" << endl;
@@ -269,11 +269,11 @@ ostream& operator <<(ostream& os, const Graph &g) {
   os << g.get_num_vertices() << endl;
 
   // Iterate through all vertices of the graph
-  for (Graph::gvertexid_t vid=0; vid <g.get_num_vertices(); ++vid) {
+  for (GVertexId vid=0; vid <g.get_num_vertices(); ++vid) {
     // Iterate through all edges of the given vertex
-    for (auto it = g.ecbegin(vid); it != g.ecend(vid); ++it) {
-      Graph::evalue_type edge = *it;
-      os << edge << endl;    
+    for (GEdgeCIter<GCost> it = g.ecbegin(vid); it != g.ecend(vid); ++it) {
+      GEdgeIterConstReference<GCost> edge{*it};
+      os << edge.first.first << " " << edge.first.second << " " << edge.second << endl;    
     }
   }    
 
@@ -281,6 +281,10 @@ ostream& operator <<(ostream& os, const Graph &g) {
   
   return os;
 }
+
+// Trigger instantiation
+template class Graph<uint32_t>;
+template ostream& operator << <uint32_t>(ostream& os, const Graph<uint32_t> &g);
 
 //-----------------------------------------------------------------------------
 } } // namespace hexgame { namespace utils {

@@ -40,14 +40,21 @@
 
 namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
+// Forward Declarations
+template <typename GCost>
+class MSTPrim;
+
+template <typename GCost>
+std::ostream& operator <<(std::ostream&, const MSTPrim<GCost>&);
+// End of Forward Declarations
+
+template <typename GCost>
 class MSTPrim {
  public:
-  using MSTElem = Tree::TreeElem;
-
   // Contructors
   //     Creates a MSTPrim class that runs Prim's   
   //     algorithm on Graph g and creates a tree.
-  MSTPrim(const Graph &g);
+  MSTPrim(const Graph<GCost> &g);
 
   // Destructor
   ~MSTPrim() {}
@@ -61,25 +68,30 @@ class MSTPrim {
 
   // helper function to allow chained cout cmds: example
   // cout << "The tree: " << endl << mst << endl << "---------" << endl;
-  friend std::ostream& operator << (std::ostream& os, const MSTPrim &mst);
+  friend std::ostream& operator << <>(std::ostream& os, const MSTPrim<GCost> &mst);
 
   // ITERATORS: 
   //   We simply use delegation to Tree class
-  using const_iterator = typename Tree::const_iterator;
-  inline const_iterator cbegin() const { return _mst.cbegin(); }
-  inline const_iterator cend() const { return _mst.cend(); }
+  using MConstIterator = typename Tree<GCost>::TConstIterator;
+  inline MConstIterator cbegin() const { return _mst.cbegin(); }
+  inline MConstIterator cend() const { return _mst.cend(); }
 
   // Set method
-  using size_type = typename Tree::size_type;
+  using size_type = typename Tree<GCost>::size_type;
 
-  using const_reference = typename Tree::const_reference;
-  inline const_reference at(size_type n) const { return _mst.at(n); }
+  using MConstReference = typename Tree<GCost>::TConstReference;
+  inline MConstReference at(size_type n) const { return _mst.at(n); }
 
  protected:
  private:
-  const Graph& _g;
-  Tree _mst;
+  const Graph<GCost>& _g;
+  Tree<GCost> _mst;
 };
+
+// Suppress implicit instantiation
+extern template std::ostream& 
+operator << <uint32_t>(std::ostream& os, const MSTPrim<uint32_t> &t);
+extern template class MSTPrim<uint32_t>;
 
 //-----------------------------------------------------------------------------
 } } // namespace hexgame { namespace utils {

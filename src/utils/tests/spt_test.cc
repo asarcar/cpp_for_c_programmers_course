@@ -49,6 +49,8 @@ DECLARE_int32(src_vertex_id);
 DECLARE_int32(dst_vertex_id);
 DECLARE_bool(auto_test);
 
+using GCost=uint32_t;
+
 class SPTGraphTester {
  public:
   SPTGraphTester(const bool         auto_test,
@@ -128,15 +130,15 @@ class SPTGraphTester {
   const uint32_t     _src_vertex_id;
   const uint32_t     _dst_vertex_id;
 
-  void ProcessGraph(const Graph &g, const bool from_ip_file);
+  void ProcessGraph(const Graph<GCost> &g, const bool from_ip_file);
 };
  
 void SPTGraphTester::RandomlyGeneratedGraphTest(void) {
   DLOG(INFO) << "RandomlyGeneratedGraphTest: Initiated";
-  Graph::EdgeType type = _are_edges_directed ? 
-                         Graph::EdgeType::DIRECTED: 
-                         Graph::EdgeType::UNDIRECTED;
-  Graph g(type, _num_vertices, _edge_density, 
+  GEdgeType type = _are_edges_directed ? 
+                   GEdgeType::DIRECTED: 
+                   GEdgeType::UNDIRECTED;
+  Graph<GCost> g(type, _num_vertices, _edge_density, 
           _min_distance, _max_distance, _auto_test);
   g.output_to_file(_gen_random_graph_op_file);  
   ProcessGraph(g, false);
@@ -147,7 +149,7 @@ void SPTGraphTester::RandomlyGeneratedGraphTest(void) {
 
 void SPTGraphTester::InputFileReadGraphTest(void) {
   DLOG(INFO) << "InputFileReadGraphTest: Initiated";
-  Graph g(_ip_file);
+  Graph<GCost> g(_ip_file);
   // generate output only if NOT called from automated test script
   // reason is CTest runs tests parallely. Multiple tests will stomp
   // on the same output file: instead have one test generate op file
@@ -156,11 +158,11 @@ void SPTGraphTester::InputFileReadGraphTest(void) {
   return;
 }
 
-void SPTGraphTester::ProcessGraph(const Graph& g,
+void SPTGraphTester::ProcessGraph(const Graph<GCost>& g,
                                   const bool   from_ip_file) {
   DLOG(INFO) << g << std::endl;
   
-  SPTDijkstra spt(g);
+  SPTDijkstra<GCost> spt(g);
   DLOG(INFO) << spt;
     
   if (g.get_num_vertices() <= 2) {
@@ -178,13 +180,13 @@ void SPTGraphTester::ProcessGraph(const Graph& g,
   if (!(from_ip_file && _auto_test))
     spt.output_to_file(_op_file);
   
-  Graph::gcost_t path_cost;
+  GCost path_cost;
   // Get the path cost between the two vertices
   path_cost = spt.get_path_size(_src_vertex_id, _dst_vertex_id);
 
   DLOG(INFO) << "Vertex v[" << _src_vertex_id 
              << "] to v[" << _dst_vertex_id << "]: ";
-  if (path_cost < Graph::kInfinityCost) {
+  if (path_cost < kGInfinityCost<GCost>()) {
     DLOG(INFO) << " Path Cost is " << path_cost;
   }
   else {
@@ -334,10 +336,10 @@ DEFINE_int32(num_vertices, 50,
 static bool ValidateNumVertices(const char* flagname, int32_t num_v) {
   std::string s(flagname);
   if ( (num_v <= 1) || 
-       (static_cast<Graph::gvertexid_t>(num_v) >= 
-        Graph::kMaxVertexId) ) {
+       (static_cast<GVertexId>(num_v) >= 
+        kGMaxVertexId<GCost>()) ) {
     std::cerr << "Invalid value for --" << s << ": " << num_v 
-              << ": should be [2," << Graph::kMaxVertexId << ")" 
+              << ": should be [2," << kGMaxVertexId<GCost>() << ")" 
               << std::endl;
     return false;
   }
@@ -369,10 +371,10 @@ DEFINE_int32(min_distance, 1,
 static bool ValidateMinDistance(const char* flagname, int32_t min_d) {
   std::string s(flagname);
   if ( (min_d <= 0) || 
-       (static_cast<Graph::gcost_t>(min_d) >= 
-        Graph::kInfinityCost) ) {
+       (static_cast<GCost>(min_d) >= 
+        kGInfinityCost<GCost>()) ) {
     std::cerr << "Invalid value for --" << s << ": " << min_d 
-              << ": should be [1," << Graph::kInfinityCost 
+              << ": should be [1," << kGInfinityCost<GCost>() 
               << ")" << std::endl;
     return false;
   }
@@ -387,11 +389,11 @@ DEFINE_int32(max_distance, 10,
 static bool ValidateMaxDistance(const char* flagname, int32_t max_d) {
   std::string s(flagname);
   if ( (max_d <= 0) || 
-       (static_cast<Graph::gcost_t>(max_d) >= 
-        Graph::kInfinityCost) ) {
+       (static_cast<GCost>(max_d) >= 
+        kGInfinityCost<GCost>()) ) {
     std::cerr << "Invalid value for --" << s << ": " << max_d 
               << ": should be [1," 
-              << Graph::kMaxVertexId << ")" << std::endl;
+              << kGMaxVertexId<GCost>() << ")" << std::endl;
     return false;
   }
   return true;
@@ -405,11 +407,11 @@ DEFINE_int32(src_vertex_id, 1, "vertex id of root for SPT algorithm");
 static bool ValidateSrcVertexId(const char* flagname, int32_t src_v) {
   std::string s(flagname);
   if ( (src_v < 0) || 
-       (static_cast<Graph::gvertexid_t>(src_v) >= 
-        Graph::kMaxVertexId) ) {
+       (static_cast<GVertexId>(src_v) >= 
+        kGMaxVertexId<GCost>()) ) {
     std::cerr << "Invalid value for --" << s << ": " << src_v 
               << ": should be [0," 
-              << Graph::kMaxVertexId 
+              << kGMaxVertexId<GCost>() 
               << ")" << std::endl;
     return false;
   }
@@ -422,11 +424,11 @@ DEFINE_int32(dst_vertex_id, 0, "vertex id of the dest in SPT algorithm");
 static bool ValidateDstVertexId(const char* flagname, int32_t dst_v) {
   std::string s(flagname);
   if ( (dst_v < 0) || 
-       (static_cast<Graph::gvertexid_t>(dst_v) >= 
-        Graph::kMaxVertexId) ) {
+       (static_cast<GVertexId>(dst_v) >= 
+        kGMaxVertexId<GCost>()) ) {
     std::cerr << "Invalid value for --" << s << ": " << dst_v 
               << ": should be [0," 
-              << Graph::kMaxVertexId 
+              << kGMaxVertexId<GCost>() 
               << ")" << std::endl;
     return false;
   }

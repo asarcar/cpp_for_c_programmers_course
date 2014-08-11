@@ -124,41 +124,96 @@
 namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
 // Forward Declarations
+template <typename GCost> 
+class Graph;
+
+template <typename GCost> 
+std::ostream& operator << (std::ostream& os, const Graph<GCost> &g);
 // End of Forward Declarations
 
+using GVertexId = uint32_t;
+using GEdgeId   = std::pair<GVertexId, GVertexId>; // edge id
+using GFileName = std::string;
+
+// Type of Graph: Directed or Undirected
+enum class GEdgeType {UNDIRECTED = 0, DIRECTED};
+
+// Iterator Options: BFS ORDER, DFS ORDER
+enum class GVertexIterType {DFS_ORDER=0, BFS_ORDER};
+
+template <typename GCost>
+class GVertexCIter;
+
+// template <typename GCost>
+// typedef class GVertexCIter<GCost> vconst_iterator; //using construct not working
+
+using GVertexIterSeed     = std::vector<GVertexId>;
+using GVertexIterValue    = GVertexId;
+using GVertexIterConstReference= const GVertexId&;
+
+template <typename GCost>
+class GEdgeCIter;
+
+// Used for the hashing function to store edges in unordered map
+struct PairKeyHash {
+  inline std::size_t operator() (const GEdgeId &key) const {
+    std::hash<GVertexId> hasher;
+    return (hasher(hasher(key.first) ^ hasher(key.second)));
+  }
+};
+
+// Graph container allows iteration of edges of a given vertex
+// Default Vertex is assumed to be vertex_id 0 (ie first vertex)
+template <typename GCost = uint32_t>
+using GEdgeContainer = typename std::unordered_map<GEdgeId, 
+                                                   GCost, 
+                                                   PairKeyHash>;
+
+template <typename GCost = uint32_t>
+using GEdgeContainerIter = typename GEdgeContainer<GCost>::const_iterator;
+
+template <typename GCost = uint32_t>
+using GEdgeIterValue    = typename GEdgeContainer<GCost>::value_type;
+
+template <typename GCost = uint32_t>
+using GEdgeIterConstReference= typename GEdgeContainer<GCost>::const_reference;
+
+// Constant Limit Values
+template <typename GCost = uint32_t>
+constexpr inline GVertexId kGMaxVertexId(void) {
+  return GVertexId{1U << 10};
+} 
+template <typename GCost = uint32_t>
+constexpr inline GCost     kGInfinityCost(void) {
+  return GCost{std::numeric_limits<GCost>::max()};
+}
+template <typename GCost = uint32_t>
+constexpr inline GCost     kGMinCost(void) {
+  return GCost{1};
+}
+
+
+template <typename GCost = uint32_t>
 class Graph {
  public:
-  // Type of Graph: Directed or Undirected
-  enum class EdgeType {UNDIRECTED = 0, DIRECTED};
   
-  using gcost_t      = uint32_t; // cost type: path cost, edge cost.
-  using gvertexid_t  = uint32_t; // vertex id
-  using gedgeid_t    = std::pair<gvertexid_t, gvertexid_t>; // edge id
-  using gfile_name_t = std::string;
-  using gedgeval_t   = gcost_t; // Edge Attributes
-  
-  // Keeping a check on max verticies to ensure all state of Graph fits in RAM
-  constexpr static Graph::gvertexid_t kMaxVertexId{(1 << 10)}; 
-  constexpr static Graph::gcost_t kInfinityCost{std::numeric_limits<int>::max()};
-  constexpr static Graph::gcost_t kMinCost{1};
-
   // Constructors
   // Init an undirected or directed graph (based on type) with num_vertices.
   // The edges created with probability of edge_density.
   // The edge cost is chosen with equal prob in range mix to max range
-  explicit Graph(const EdgeType type = EdgeType::UNDIRECTED,
+  explicit Graph(const GEdgeType type = GEdgeType::UNDIRECTED,
                  const uint32_t num_vertices=50, 
                  const double   edge_density=0.5, 
-                 const gcost_t  min_distance_range=1, 
-                 const gcost_t  max_distance_range=10,
+                 const GCost    min_distance_range=1, 
+                 const GCost    max_distance_range=10,
                  // true when called from automated test scripts
                  const bool     auto_test = false); 
-
+  
   // Init an undirected graph (note that sample file data provided in HW does not 
   // specify directed or undirected: hence we will always assume undirected graph)
   // based on content of the file
   explicit Graph(std::string file_name);
-
+  
   // Destructor
   virtual ~Graph() {}
 
@@ -188,97 +243,69 @@ class Graph {
 
   // add (g, x, y): adds to G the edge from x to y, if it is not there.
   // Creates an edge (adjacency) in the graph with edge and (optional) value
-  void add_edge(gvertexid_t v1, gvertexid_t v2, gcost_t value =kMinCost);
+  void add_edge(GVertexId v1, GVertexId v2, GCost value =kGMinCost<GCost>());
 
   // delete (G, x, y): removes the edge from x to y, if it is there.
   // Removes an edge (adjacency) in the graph with edge and (optional) value
-  void del_edge(gvertexid_t v1, gvertexid_t v2);
+  void del_edge(GVertexId v1, GVertexId v2);
 
   // get_edge_value( G, x, y): returns the value associated to the edge (x,y).
   // non existent edge: return infinity cost
   // bad arg check: non existent edge automatically checked by container
-  gedgeval_t get_edge_value(gvertexid_t v1, gvertexid_t v2) const;
+  GCost get_edge_value(GVertexId v1, GVertexId v2) const;
   
   // set_edge_value (G, x, y, v): sets the value to the edge (x,y) to v.
   // bad arg check: non existent edge automatically checked by container
-  void set_edge_value(gvertexid_t v1, gvertexid_t v2, 
-                      gedgeval_t value=kMinCost);
+  void set_edge_value(GVertexId v1, GVertexId v2, 
+                      GCost value=kGMinCost<GCost>);
 
   // Dumps the graph to the file "file_name"
   void output_to_file(std::string file_name);
 
   // helper function to allow chained cout cmds: example
   // cout << "The graph: " << endl << g << endl << "---------" << endl;
-  friend std::ostream& operator << (std::ostream& os, const Graph &g);
-
-
- private:
-  // Forward Definition to allow iterator classes to refer to the function
-  // Used for the hashing function to store edges in unordered map
-  struct PairKeyHash {
-    inline std::size_t operator() (const gedgeid_t &key) const {
-      std::hash<gvertexid_t> hasher;
-      return (hasher(hasher(key.first) ^ hasher(key.second)));
-    }
-  };
+  friend std::ostream& operator << <>(std::ostream& os, const Graph<GCost> &g);
 
  public:
   // ITERATORS: 
-  // Edge Iterator Given a source vertex
-  friend class EdgeCIter;
-  // Standard type definitions expected by STL
-  // Graph container allows iteration of edges of a given vertex
-  // Default Vertex is assumed to be vertex_id 0 (ie first vertex)
-  using edge_container= typename std::unordered_map<gedgeid_t, 
-                                                    gedgeval_t, 
-                                                    PairKeyHash>;
-  typedef class EdgeCIter econst_iterator; //using construct not working
-  using evalue_type       = typename edge_container::value_type;
-  using econst_reference  = typename edge_container::const_reference;
-
-  econst_iterator ecbegin(gvertexid_t vid) const;
-  econst_iterator ecend(gvertexid_t vid) const;
-
   // Vertex Iterator: 
-  // Iterator Options: BFS ORDER, DFS ORDER
-  friend class VertexCIter; 
-  enum class VertexIterType {DFS_ORDER=0, BFS_ORDER};
-  static const uint32_t NUM_VERTEX_ITER_TYPES = 2;
+  friend class GVertexCIter<GCost>; 
+  GVertexCIter<GCost> vcbegin(GVertexIterType itype, 
+                              const GVertexId &seed_vid) const;
+  GVertexCIter<GCost> vcbegin(GVertexIterType itype, 
+                              const GVertexIterSeed& seed_vid) const;
+  GVertexCIter<GCost> vcend(GVertexIterType) const;
+  
+  static const uint32_t kNumVertexIterTypes{2};
   // Display VertexIterType string
   // Display String: State Enumberator
   static inline const std::string&
-  str_vertex_iter_type(const VertexIterType& iType) {
-    static std::array<std::string, NUM_VERTEX_ITER_TYPES>
+  str_vertex_iter_type(const GVertexIterType& iType) {
+    static std::array<std::string, kNumVertexIterTypes>
         VertexIterTypeStr = {{"\"DFS_ORDER\"", "\"BFS_ORDER\""}};
     return VertexIterTypeStr[static_cast<std::size_t>(iType)];
   }
 
-  // Standard type definitions expected by STL
-  using SeedVertices    = std::vector<gvertexid_t>;
-  typedef class VertexCIter vconst_iterator; //using construct not working
-  using vvalue_type     = gvertexid_t;
-  using vconst_reference= const gvertexid_t&;
+  // Edge Iterator Given a source vertex
+  friend class GEdgeCIter<GCost>;
 
-  vconst_iterator vcbegin(VertexIterType itype, 
-                          const gvertexid_t &seed_vid) const;
-  vconst_iterator vcbegin(VertexIterType itype, 
-                          const SeedVertices& seed_vid) const;
-  vconst_iterator vcend(VertexIterType) const;
+  GEdgeCIter<GCost> ecbegin(GVertexId vid) const;
+  GEdgeCIter<GCost> ecend(GVertexId vid) const;
 
  protected:
   // get_next_nbr: provide the first nbr vertex that is available
   // immediately from or after the passed nbr_vid 
-  virtual gvertexid_t get_next_nbr(gvertexid_t vid, gvertexid_t nbr_vid) const {
-    gvertexid_t vid_end = get_num_vertices();
+  virtual GVertexId get_next_nbr(GVertexId vid, GVertexId nbr_vid) const {
+    GVertexId vid_end = get_num_vertices();
     assert(vid < vid_end);
-    for (gvertexid_t vid2 = nbr_vid; vid2 < vid_end; ++vid2) {
+    for (GVertexId vid2 = nbr_vid; vid2 < vid_end; ++vid2) {
       if (isset_adjmap(std::make_pair(vid, vid2)) == true)
         return vid2;
     }
-    return kMaxVertexId;
+    return kGMaxVertexId<GCost>();
   }
   // Tests whether edge eid is present in the adjacency map
-  inline bool isset_adjmap(const gedgeid_t &eid) const {
+  inline bool isset_adjmap(const GEdgeId &eid) const {
     // For Undirected graph both edge {v1, v2} and {v2, v1} would be present
     // So absence of any one of the two signifies the edge is not present
     return _adjmap.is_bit_set(pos(eid.first, eid.second));
@@ -291,7 +318,7 @@ class Graph {
   const static uint32_t kFixedEdgePresenceSeedForRandomEngine = 24718;
 
   // Graph type
-  EdgeType _type;
+  GEdgeType _type;
 
   // Number of Vertices in graph
   uint32_t _num_vertices;
@@ -307,12 +334,12 @@ class Graph {
   // gvector_valid_map_t _vectorvalidmap;
 
   // Unordered Map (Hash Map) of Edges
-  // Key: Pair i.e. gedgeid_t is a tuple {vertex1, vertex2}
-  // Value: gedgeval_t
+  // Key: Pair i.e. GEdgeId is a tuple {vertex1, vertex2}
+  // Value: GCost
   // unordered_map of complex keys require definition of 
   // 1) hash i.e. operator() - we need to define this operator
   // 2) operator== Pair already has operator== defined. 
-  edge_container _edges;
+  GEdgeContainer<GCost>  _edges;
 
   // Adjacency Map: 
   // Edge Presence is realized via BitSet: one bit for every edge 
@@ -327,24 +354,33 @@ class Graph {
 
   // private utilities on bitmap
   // Set the presence of the edge eid in the adjacency map
-  inline void set_adjmap(const gedgeid_t &eid) {
+  inline void set_adjmap(const GEdgeId &eid) {
     _adjmap.set_bit(pos(eid.first, eid.second));
     // For Undirected graph edge {v1, v2} is equivalent to {v2, v1}
-    if (this->_type == EdgeType::UNDIRECTED) {
+    if (this->_type == GEdgeType::UNDIRECTED) {
       _adjmap.set_bit(pos(eid.second, eid.first));
     }
     return;
   }
   // Clear the presence of the edge eid in the adjacency map
-  inline void clr_adjmap(const gedgeid_t &eid) {
+  inline void clr_adjmap(const GEdgeId &eid) {
     _adjmap.clr_bit(pos(eid.first, eid.second));
     // For Undirected graph edge {v1, v2} is equivalent to {v2, v1}
-    if (this->_type == EdgeType::UNDIRECTED) {
+    if (this->_type == GEdgeType::UNDIRECTED) {
       _adjmap.clr_bit(pos(eid.second, eid.first));
     }
     return;
   }
 };
+
+// Suppress implicit instantiation
+extern template std::ostream& 
+operator << <uint32_t>(std::ostream& os, const Graph<uint32_t> &g);
+
+extern template class Graph<uint32_t>;
+
+// Create few aliases 
+using GraphI = Graph<uint32_t>;
 
 //-----------------------------------------------------------------------------
 } } // namespace hexgame { namespace utils {

@@ -32,11 +32,13 @@
 namespace hexgame { namespace utils {
 //-----------------------------------------------------------------------------
 // VT: Vertex Attribute Tempate
-template <typename vAttr, typename vAttrIsEqual = std::equal_to<vAttr>>
-class eGraph : public Graph {
+template <typename vAttr, 
+          typename vAttrIsEqual = std::equal_to<vAttr>, 
+          typename GCost = uint32_t>
+class eGraph : public Graph<GCost> {
  public:
   explicit eGraph(uint32_t num_vertices=0) :
-      Graph(Graph::EdgeType::UNDIRECTED, num_vertices, 0, 1, 1),
+      Graph<GCost>(GEdgeType::UNDIRECTED, num_vertices, 0, 1, 1),
       _vmap(num_vertices) {}
   explicit eGraph(std::string file_name);
   virtual ~eGraph() = default;
@@ -48,32 +50,32 @@ class eGraph : public Graph {
   void operator=(const eGraph &) = delete;
   void operator=(eGraph &&) = delete; // C++11 only
 
-  inline void set_vertex_attr(Graph::gvertexid_t vid, const vAttr& vA) {
+  inline void set_vertex_attr(GVertexId vid, const vAttr& vA) {
     _vmap.at(vid) = vA;
     return;
   }
 
-  inline const vAttr& get_vertex_attr(Graph::gvertexid_t vid) const {
+  inline const vAttr& get_vertex_attr(GVertexId vid) const {
     return _vmap.at(vid);
   }
 
-  inline vAttr& get_vertex_attr(Graph::gvertexid_t vid) {
+  inline vAttr& get_vertex_attr(GVertexId vid) {
     return _vmap.at(vid);
   }
 
   // get_next_nbr: provide the first nbr vertex that is available
   // immediately from or after the passed nbr_vid 
   // *as long as* the attribute of the vertices match
-  virtual gvertexid_t get_next_nbr(gvertexid_t vid, gvertexid_t nbr_vid) const {
-    Graph::gvertexid_t vid_end = get_num_vertices();
+  virtual GVertexId get_next_nbr(GVertexId vid, GVertexId nbr_vid) const {
+    GVertexId vid_end = this->get_num_vertices();
     assert(vid < vid_end);
-    for (Graph::gvertexid_t vid2 = nbr_vid; vid2 < vid_end; ++vid2) {
+    for (GVertexId vid2 = nbr_vid; vid2 < vid_end; ++vid2) {
       // We should replace the comparison of attributes with a functor
-      if (isset_adjmap(std::make_pair(vid, vid2)) &&
+      if (this->isset_adjmap(std::make_pair(vid, vid2)) &&
           _vattr_is_equal(_vmap.at(vid), _vmap.at(vid2)))
         return vid2;
     }
-    return Graph::kMaxVertexId;
+    return kGMaxVertexId<GCost>();
   }
   // Save State & Restore State: used by MC simulation to run "what if scenarios" 
   // without messing up current state of eGraph

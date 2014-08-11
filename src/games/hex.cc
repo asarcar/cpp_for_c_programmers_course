@@ -34,14 +34,6 @@ using namespace std;
 
 namespace hexgame { namespace games {
 //-----------------------------------------------------------------------------
-// Definition of constant expression: allocated global variable space
-constexpr uint32_t Hex::NUM_STATES;
-constexpr uint32_t Hex::NUM_PLAYERS;
-constexpr uint32_t Hex::DEFAULT_DIMENSION;
-constexpr uint32_t Hex::MIN_DIMENSION;
-constexpr uint32_t Hex::MAX_DIMENSION;
-constexpr int32_t  Hex::INVALID_NODE_POS;
-
 Hex::Hex(const uint32_t dimension) :
     _dim(dimension), _g(dimension*dimension), 
     _state{ ._round = 0, ._last = Hex::State::EMPTY, 
@@ -188,7 +180,7 @@ std::ostream& operator <<(std::ostream& os, const Hex &h) {
       // Display East edges (West Edges are displayed in the previous iteration)
       if (ew >= h._dim - 1)
         continue;
-      if (h._g.get_edge_value(vid, vid+1) < Graph::kInfinityCost)
+      if (h._g.get_edge_value(vid, vid+1) < kGInfinityCost())
         os << std::left << std::setfill(' ') << std::setw(2) << ew_edge;
     }
     // West Label
@@ -208,7 +200,7 @@ std::ostream& operator <<(std::ostream& os, const Hex &h) {
       if (ew == 0) {
         nvid1 = h.get_node_pos(ns, 0);
         svid1 = h.get_node_pos(ns + 1, 0);
-        if (h._g.get_edge_value(nvid1, svid1) < Graph::kInfinityCost)
+        if (h._g.get_edge_value(nvid1, svid1) < kGInfinityCost())
           os << std::left << std::setfill(' ') << std::setw(2) 
              << disp_ns_edge.at(i++%2);
         continue;
@@ -216,10 +208,10 @@ std::ostream& operator <<(std::ostream& os, const Hex &h) {
       nvid1 = h.get_node_pos(ns, ew);
       svid1 = h.get_node_pos(ns+1, ew-1);
       svid2 = h.get_node_pos(ns+1, ew);
-      if (h._g.get_edge_value(nvid1, svid1) < Graph::kInfinityCost)
+      if (h._g.get_edge_value(nvid1, svid1) < kGInfinityCost())
         os << std::left << std::setfill(' ') << std::setw(2) 
            << disp_ns_edge.at(i++%2);
-      if (h._g.get_edge_value(nvid1, svid2) < Graph::kInfinityCost)
+      if (h._g.get_edge_value(nvid1, svid2) < kGInfinityCost())
         os << std::left << std::setfill(' ') << std::setw(2) 
            << disp_ns_edge.at(i++%2);
     }
@@ -425,8 +417,8 @@ bool Hex::did_blue_win(void) {
   // 3. If any of the DFS traversal reaches the east border (ew == _dim-=)
   //    BLUE has won
   
-  Graph::SeedVertices seed_v;
-  Graph::gvertexid_t  vid;
+  GVertexIterSeed seed_v;
+  GVertexId  vid;
   DLOG(INFO) << "Assess " << str_state(State::BLUE) << " won?" << std::endl; 
   DLOG(INFO) << "Seed Vertices (# " << seed_v.size() << ")";
   // 1. Add all vertices in the west border (ew == 0)
@@ -442,8 +434,8 @@ bool Hex::did_blue_win(void) {
   // 2. Initiate a DFS on these seed vertices
   uint32_t ew, i=0;
   DLOG(INFO) << "Initiate DFS - vertices visited: ";
-  for (auto it = _g.vcbegin(Graph::VertexIterType::DFS_ORDER, seed_v);
-       it != _g.vcend(Graph::VertexIterType::DFS_ORDER); 
+  for (auto it = _g.vcbegin(GVertexIterType::DFS_ORDER, seed_v);
+       it != _g.vcend(GVertexIterType::DFS_ORDER); 
        ++it, ++i) {
     ew = get_col(*it);
     DLOG(INFO) << " vid" << *it << " " 
@@ -478,8 +470,8 @@ bool Hex::did_red_win(void) {
   // 3. If any of the DFS traversal reaches the south border (ns == _dim-1)
   //    RED has won
   
-  Graph::SeedVertices seed_v;
-  Graph::gvertexid_t  vid;
+  GVertexIterSeed seed_v;
+  GVertexId  vid;
   DLOG(INFO) << "Assess " << str_state(State::BLUE) << " won?" << std::endl; 
   DLOG(INFO) << "Seed Vertices (# " << seed_v.size() << ")";
   // 1. Add all vertices in the north border (ns == 0)
@@ -495,8 +487,8 @@ bool Hex::did_red_win(void) {
   // 2. Initiate a DFS on these seed vertices
   uint32_t ns, i=0;
   DLOG(INFO) << "Initiate DFS - vertices visited: ";
-  for (auto it = _g.vcbegin(Graph::VertexIterType::DFS_ORDER, seed_v);
-       it != _g.vcend(Graph::VertexIterType::DFS_ORDER); 
+  for (auto it = _g.vcbegin(GVertexIterType::DFS_ORDER, seed_v);
+       it != _g.vcend(GVertexIterType::DFS_ORDER); 
        ++it, ++i) {
     ns = get_row(*it);
     DLOG(INFO) << " vid" << *it << " " 
